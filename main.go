@@ -54,7 +54,7 @@ func main() {
 }
 
 func initServices(db *gorm.DB) {
-	account := service.NewAccountService(db, app)
-	app.Register(account, component.WithName("account"), component.WithNameFunc(strings.ToLower))
-	app.RegisterRemote(account, component.WithName("account"), component.WithNameFunc(strings.ToLower))
+	playersvc := service.NewPlayerSvc(db, app)
+	app.Register(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
+	app.RegisterRemote(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
 }

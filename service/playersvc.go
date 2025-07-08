@@ -6,41 +6,39 @@ import (
 
 	"github.com/kevin-chtw/tw_db_svr/logic"
 	"github.com/kevin-chtw/tw_proto/cproto"
+	"github.com/kevin-chtw/tw_proto/sproto"
 	"github.com/sirupsen/logrus"
 	pitaya "github.com/topfreegames/pitaya/v3/pkg"
 	"github.com/topfreegames/pitaya/v3/pkg/component"
 	"gorm.io/gorm"
 )
 
-type AccountService struct {
+type PlayerSvc struct {
 	component.Base
 	playerDB *logic.PlayerDB
 	app      pitaya.Pitaya
 }
 
-func NewAccountService(db *gorm.DB, app pitaya.Pitaya) *AccountService {
-	return &AccountService{
+func NewPlayerSvc(db *gorm.DB, app pitaya.Pitaya) *PlayerSvc {
+	return &PlayerSvc{
 		playerDB: logic.NewPlayerDB(db),
 		app:      app,
 	}
 }
 
-func (s *AccountService) Verify(ctx context.Context, req *cproto.LoginReq) (*cproto.LoginAck, error) {
+func (s *PlayerSvc) Get(ctx context.Context, req *sproto.GetPlayerReq) (*sproto.GetPlayerAck, error) {
 	player, err := s.playerDB.VerifyAccount(req.Account, req.Password)
 	if err != nil {
-		return &cproto.LoginAck{
-			Serverid: "",
-			Userid:   "",
-		}, nil
+		return nil, err
 	}
 
-	return &cproto.LoginAck{
-		Serverid: "",
-		Userid:   strconv.FormatUint(uint64(player.ID), 10),
+	return &sproto.GetPlayerAck{
+		Userid:  strconv.FormatUint(uint64(player.ID), 10),
+		Account: player.Account,
 	}, nil
 }
 
-func (s *AccountService) Create(ctx context.Context, req *cproto.LobbyReq) (*cproto.LobbyAck, error) {
+func (s *PlayerSvc) Create(ctx context.Context, req *cproto.LobbyReq) (*cproto.LobbyAck, error) {
 	rsp := &cproto.LobbyAck{
 		RegisterAck: &cproto.RegisterAck{
 			Serverid: "",
