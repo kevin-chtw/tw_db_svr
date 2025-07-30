@@ -61,3 +61,27 @@ func (s *PlayerSvc) Create(ctx context.Context, req *cproto.LobbyReq) (*cproto.L
 	rsp.RegisterAck.Userid = strconv.FormatUint(uint64(player.ID), 10)
 	return rsp, nil
 }
+
+// 检查房卡数量
+func (s *PlayerSvc) CheckRoomCards(ctx context.Context, req *sproto.CheckRoomCardsReq) (*sproto.CheckRoomCardsAck, error) {
+	count, err := s.playerDB.GetRoomCards(req.Userid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sproto.CheckRoomCardsAck{
+		Count: int32(count),
+	}, nil
+}
+
+// 扣除房卡
+func (s *PlayerSvc) DeductRoomCards(ctx context.Context, req *sproto.DeductRoomCardsReq) (*sproto.DeductRoomCardsAck, error) {
+	err := s.playerDB.DeductRoomCards(req.Userid, int(req.Count))
+	if err != nil {
+		return nil, err
+	}
+
+	return &sproto.DeductRoomCardsAck{
+		Success: true,
+	}, nil
+}

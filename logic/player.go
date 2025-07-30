@@ -95,3 +95,21 @@ func (p *PlayerDB) VerifyAccount(account, password string) (*models.Player, erro
 
 	return &player, nil
 }
+
+// 获取玩家房卡数量
+func (p *PlayerDB) GetRoomCards(userid string) (int, error) {
+	var player models.Player
+	result := p.DB.Select("room_cards").Where("id = ?", userid).First(&player)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return player.RoomCards, nil
+}
+
+// 扣除玩家房卡
+func (p *PlayerDB) DeductRoomCards(userid string, count int) error {
+	return p.DB.Model(&models.Player{}).
+		Where("id = ? AND room_cards >= ?", userid, count).
+		Update("room_cards", gorm.Expr("room_cards - ?", count)).
+		Error
+}
