@@ -1,5 +1,5 @@
 Server: db
-MySQL: username:password@tcp(192.168.182.128:3306)/tw_db?charset=utf8mb4&parseTime=True&loc=Local
+MySQL: kevin:Kevin~12@tcp(0.0.0.0:3306)/tw_db?charset=utf8mb4&parseTime=True&loc=Local
 Logs:
   LogLevel: debug
   Formatter: text
