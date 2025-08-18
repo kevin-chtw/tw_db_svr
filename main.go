@@ -5,12 +5,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/kevin-chtw/tw_common/utils"
 	"github.com/kevin-chtw/tw_db_svr/models"
 	"github.com/kevin-chtw/tw_db_svr/service"
 	"github.com/sirupsen/logrus"
 	pitaya "github.com/topfreegames/pitaya/v3/pkg"
 	"github.com/topfreegames/pitaya/v3/pkg/component"
 	"github.com/topfreegames/pitaya/v3/pkg/config"
+	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -19,6 +21,7 @@ import (
 var app pitaya.Pitaya
 
 func main() {
+	pitaya.SetLogger(utils.Logger(logrus.DebugLevel))
 	// 加载数据库配置
 	configData, err := os.ReadFile("etc/db.yaml")
 	if err != nil {
@@ -45,11 +48,12 @@ func main() {
 
 	builder := pitaya.NewBuilder(false, "db", pitaya.Cluster, map[string]string{}, *config.NewDefaultPitayaConfig())
 	app = builder.Build()
+	defer app.Shutdown()
 
 	// 注册服务
 	initServices(db)
 
-	logrus.Infof("Pitaya database server started")
+	logger.Log.Infof("Pitaya database server started")
 	app.Start()
 }
 
