@@ -13,6 +13,7 @@ import (
 	"github.com/topfreegames/pitaya/v3/pkg/component"
 	"github.com/topfreegames/pitaya/v3/pkg/config"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
+	"github.com/topfreegames/pitaya/v3/pkg/serialize"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -45,8 +46,9 @@ func main() {
 	if err := db.AutoMigrate(&models.Player{}); err != nil {
 		panic("failed to migrate database")
 	}
-
-	builder := pitaya.NewBuilder(false, "db", pitaya.Cluster, map[string]string{}, *config.NewDefaultPitayaConfig())
+	config := config.NewDefaultPitayaConfig()
+	config.SerializerType = uint16(serialize.PROTOBUF)
+	builder := pitaya.NewBuilder(false, "db", pitaya.Cluster, map[string]string{}, *config)
 	app = builder.Build()
 	defer app.Shutdown()
 
