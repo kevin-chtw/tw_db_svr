@@ -96,14 +96,15 @@ func (l *Player) handleLogin(ctx context.Context, msg proto.Message) (proto.Mess
 
 func (l *Player) handleRegister(ctx context.Context, msg proto.Message) (proto.Message, error) {
 	req := msg.(*cproto.RegisterReq)
-	player, err := logic.NewPlayerDB(l.db).GetPlayerByAccount(req.Account)
+	_, err := logic.NewPlayerDB(l.db).GetPlayerByAccount(req.Account)
 	if err == nil {
 		return nil, errors.New("player is exist")
 	}
-	player = &models.Player{
-		Account: req.Account,
-		Pwd:     logic.HashPassword(req.Password),
-		Avatar:  req.Avatar,
+	player := &models.Player{
+		Nickname: req.Account,
+		Account:  req.Account,
+		Pwd:      logic.HashPassword(req.Password),
+		Avatar:   req.Avatar,
 	}
 
 	player, err = logic.NewPlayerDB(l.db).CreatePlayer(player)
