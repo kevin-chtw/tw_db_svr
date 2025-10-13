@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/topfreegames/pitaya/v3/pkg/config"
 	"github.com/topfreegames/pitaya/v3/pkg/logger"
 	"github.com/topfreegames/pitaya/v3/pkg/serialize"
+	"github.com/topfreegames/pitaya/v3/pkg/session"
 	"gopkg.in/yaml.v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -46,22 +48,49 @@ func main() {
 	if err := db.AutoMigrate(&models.Player{}); err != nil {
 		panic("failed to migrate database")
 	}
+
+	if err := adjustAutoIncrement(db); err != nil {
+		panic(fmt.Sprintf("failed to connect database: %v", err))
+	}
 	config := config.NewDefaultPitayaConfig()
 	config.SerializerType = uint16(serialize.PROTOBUF)
 	config.Handler.Messages.Compression = false
-	builder := pitaya.NewBuilder(false, "db", pitaya.Cluster, map[string]string{}, *config)
+	builder := pitaya.NewBuilder(false, "account", pitaya.Cluster, map[string]string{}, *config)
 	app = builder.Build()
 	defer app.Shutdown()
 
 	// 注册服务
-	initServices(db)
+	initServices(db, builder.SessionPool)
 
 	logger.Log.Infof("Pitaya database server started")
 	app.Start()
 }
 
-func initServices(db *gorm.DB) {
-	playersvc := service.NewPlayerSvc(db, app)
+func initServices(db *gorm.DB, sessionPool session.SessionPool) {
+	playersvc := service.NewPlayer(db, app, sessionPool)
 	app.Register(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
 	app.RegisterRemote(playersvc, component.WithName("player"), component.WithNameFunc(strings.ToLower))
+}
+
+// 核心函数：读当前值，< want 就调到 want
+func adjustAutoIncrement(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		var current sql.NullInt64
+		result := tx.Raw(`
+			SELECT AUTO_INCREMENT
+			FROM information_schema.TABLES
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME   = 'players'`).Scan(&current)
+		if result.Error != nil {
+			return result.Error
+		}
+		if !current.Valid { // 表刚建、还没有任何数据时可能为 NULL
+			current.Int64 = 1
+		}
+		if current.Int64 >= 10000 { // 已经≥目标值，无需调整
+			return nil
+		}
+		// 调到 10000
+		return tx.Exec("ALTER TABLE `players` AUTO_INCREMENT = 10000").Error
+	})
 }
