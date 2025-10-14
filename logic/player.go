@@ -30,6 +30,14 @@ func (p *PlayerDB) GetPlayerByAccount(account string) (*models.Player, error) {
 	return &player, nil
 }
 
+func (p *PlayerDB) GetPlayerByUid(uid string) (*models.Player, error) {
+	var player models.Player
+	if err := p.DB.Where("id = ?", uid).First(&player).Error; err != nil {
+		return nil, err
+	}
+	return &player, nil
+}
+
 // 创建新账号
 func (p *PlayerDB) CreatePlayer(player *models.Player) (*models.Player, error) {
 	if err := p.DB.Create(player).Error; err != nil {
@@ -37,4 +45,8 @@ func (p *PlayerDB) CreatePlayer(player *models.Player) (*models.Player, error) {
 	}
 
 	return player, nil
+}
+
+func (p *PlayerDB) Update(player *models.Player) error {
+	return p.DB.Save(player).Error
 }
