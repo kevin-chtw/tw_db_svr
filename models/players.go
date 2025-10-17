@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/kevin-chtw/tw_proto/cproto"
+	"github.com/kevin-chtw/tw_proto/sproto"
 	"gorm.io/gorm"
 )
 
@@ -36,6 +37,20 @@ func (p *Player) ToPlayerInfoAck() *cproto.PlayerInfoAck {
 	}
 
 	return &cproto.PlayerInfoAck{
+		Uid:      strconv.FormatUint(uint64(p.ID), 10),
+		Nickname: p.Nickname,
+		Avatar:   p.Avatar,
+		Vip:      int32(p.Vip),
+		Diamond:  p.Diamond,
+	}
+}
+
+func (p *Player) ToServerInfoAck() *sproto.PlayerInfoAck {
+	if p == nil {
+		return nil
+	}
+
+	return &sproto.PlayerInfoAck{
 		Uid:      strconv.FormatUint(uint64(p.ID), 10),
 		Nickname: p.Nickname,
 		Avatar:   p.Avatar,

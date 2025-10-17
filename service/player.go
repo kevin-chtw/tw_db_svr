@@ -58,13 +58,13 @@ func (l *Player) Message(ctx context.Context, req *cproto.AccountReq) (*cproto.A
 		if err != nil {
 			return nil, err
 		}
-		return l.newLobbyAck(rsp)
+		return l.newAccountAck(rsp)
 	}
 
 	return &cproto.AccountAck{}, nil
 }
 
-func (l *Player) newLobbyAck(msg proto.Message) (*cproto.AccountAck, error) {
+func (l *Player) newAccountAck(msg proto.Message) (*cproto.AccountAck, error) {
 	data, err := anypb.New(msg)
 	if err != nil {
 		return nil, err
