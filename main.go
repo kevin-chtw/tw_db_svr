@@ -26,7 +26,7 @@ var app pitaya.Pitaya
 func main() {
 	pitaya.SetLogger(utils.Logger(logrus.DebugLevel))
 	// 加载数据库配置
-	configData, err := os.ReadFile("etc/db.yaml")
+	configData, err := os.ReadFile("etc/account/config.yaml")
 	if err != nil {
 		panic(fmt.Sprintf("failed to read db config: %v", err))
 	}
