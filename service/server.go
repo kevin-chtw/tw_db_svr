@@ -87,7 +87,11 @@ func (m *Server) changeDiamondReq(ctx context.Context, msg proto.Message) (proto
 	}
 
 	ack := player.ToPlayerInfoAck()
-	if _, err := m.app.SendPushToUsers("account", ack, []string{req.Uid}, "proxy"); err != nil {
+	data, err := utils.Marshal(ctx, ack)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := m.app.SendPushToUsers("account", data, []string{req.Uid}, "proxy"); err != nil {
 		return nil, err
 	}
 

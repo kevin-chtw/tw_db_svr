@@ -40,36 +40,40 @@ func (l *Player) Init() {
 	l.handlers[utils.TypeUrl(&cproto.RegisterReq{})] = l.handleRegister
 }
 
-func (l *Player) Message(ctx context.Context, req *cproto.AccountReq) (*cproto.AccountAck, error) {
+func (l *Player) Message(ctx context.Context, data []byte) ([]byte, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Log.Errorf("panic recovered %s\n %s", r, string(debug.Stack()))
 		}
 	}()
-	logger.Log.Infof("PlayerMsg: %v", req)
+	req := &cproto.AccountReq{}
+	if err := utils.Unmarshal(ctx, data, req); err != nil {
+		return nil, err
+	}
 
+	logger.Log.Infof("PlayerMsg: %v", req)
 	msg, err := req.Req.UnmarshalNew()
 	if err != nil {
 		return nil, err
 	}
 
 	if handler, ok := l.handlers[req.Req.TypeUrl]; ok {
-		rsp, err := handler(ctx, msg)
-		if err != nil {
+		if rsp, err := handler(ctx, msg); err != nil {
 			return nil, err
+		} else {
+			return l.newAccountAck(ctx, rsp)
 		}
-		return l.newAccountAck(rsp)
 	}
-
-	return &cproto.AccountAck{}, nil
+	return nil, errors.ErrUnsupported
 }
 
-func (l *Player) newAccountAck(msg proto.Message) (*cproto.AccountAck, error) {
+func (l *Player) newAccountAck(ctx context.Context, msg proto.Message) ([]byte, error) {
 	data, err := anypb.New(msg)
 	if err != nil {
 		return nil, err
 	}
-	return &cproto.AccountAck{Ack: data}, nil
+	out := &cproto.AccountAck{Ack: data}
+	return utils.Marshal(ctx, out)
 }
 
 func (l *Player) handleLogin(ctx context.Context, msg proto.Message) (proto.Message, error) {
