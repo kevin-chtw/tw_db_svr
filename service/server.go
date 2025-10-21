@@ -100,7 +100,7 @@ func (m *Server) changeDiamondReq(ctx context.Context, msg proto.Message) (proto
 
 func (m *Server) playerInfoReq(ctx context.Context, msg proto.Message) (proto.Message, error) {
 	req := msg.(*sproto.PlayerInfoReq)
-	player, err := logic.NewPlayerDB(m.db).GetPlayerByAccount(req.Uid)
+	player, err := logic.NewPlayerDB(m.db).GetPlayerByUid(req.Uid)
 	if err != nil {
 		return nil, err
 	}
