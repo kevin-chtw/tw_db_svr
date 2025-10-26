@@ -70,8 +70,8 @@ func initServices(db *gorm.DB, sessionPool session.SessionPool) {
 	player := service.NewPlayer(db, app, sessionPool)
 	app.Register(player, component.WithName("player"), component.WithNameFunc(strings.ToLower)) //仅客户端访问
 
-	server := service.NewServer(db, app)
-	app.RegisterRemote(server, component.WithName("server"), component.WithNameFunc(strings.ToLower)) //仅服务器访问
+	remote := service.NewRemote(db, app)
+	app.RegisterRemote(remote, component.WithName("remote"), component.WithNameFunc(strings.ToLower)) //仅服务器访问
 }
 
 // 核心函数：读当前值，< want 就调到 want

@@ -16,16 +16,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// Server 独立的匹配服务
-type Server struct {
+// Remote 独立的匹配服务
+type Remote struct {
 	component.Base
 	db       *gorm.DB
 	app      pitaya.Pitaya
 	handlers map[string]func(context.Context, proto.Message) (proto.Message, error)
 }
 
-func NewServer(db *gorm.DB, app pitaya.Pitaya) *Server {
-	return &Server{
+func NewRemote(db *gorm.DB, app pitaya.Pitaya) *Remote {
+	return &Remote{
 		db:       db,
 		app:      app,
 		handlers: make(map[string]func(context.Context, proto.Message) (proto.Message, error)),
@@ -33,12 +33,12 @@ func NewServer(db *gorm.DB, app pitaya.Pitaya) *Server {
 }
 
 // Init 组件初始化
-func (m *Server) Init() {
+func (m *Remote) Init() {
 	m.handlers[utils.TypeUrl(&sproto.ChangeDiamondReq{})] = m.changeDiamondReq
 	m.handlers[utils.TypeUrl(&sproto.PlayerInfoReq{})] = m.playerInfoReq
 }
 
-func (m *Server) Message(ctx context.Context, req *sproto.AccountReq) (*sproto.AccountAck, error) {
+func (m *Remote) Message(ctx context.Context, req *sproto.AccountReq) (*sproto.AccountAck, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Log.Errorf("panic recovered %s\n %s", r, string(debug.Stack()))
@@ -62,7 +62,7 @@ func (m *Server) Message(ctx context.Context, req *sproto.AccountReq) (*sproto.A
 	return &sproto.AccountAck{}, nil
 }
 
-func (m *Server) newAccountAck(msg proto.Message) (*sproto.AccountAck, error) {
+func (m *Remote) newAccountAck(msg proto.Message) (*sproto.AccountAck, error) {
 	data, err := anypb.New(msg)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (m *Server) newAccountAck(msg proto.Message) (*sproto.AccountAck, error) {
 	return &sproto.AccountAck{Ack: data}, nil
 }
 
-func (m *Server) changeDiamondReq(ctx context.Context, msg proto.Message) (proto.Message, error) {
+func (m *Remote) changeDiamondReq(ctx context.Context, msg proto.Message) (proto.Message, error) {
 	req := msg.(*sproto.ChangeDiamondReq)
 	player, err := logic.NewPlayerDB(m.db).GetPlayerByAccount(req.Uid)
 	if err != nil {
@@ -98,7 +98,7 @@ func (m *Server) changeDiamondReq(ctx context.Context, msg proto.Message) (proto
 	return &sproto.ChangeDiamondAck{Uid: req.Uid, Diamond: player.Diamond}, nil
 }
 
-func (m *Server) playerInfoReq(ctx context.Context, msg proto.Message) (proto.Message, error) {
+func (m *Remote) playerInfoReq(ctx context.Context, msg proto.Message) (proto.Message, error) {
 	req := msg.(*sproto.PlayerInfoReq)
 	player, err := logic.NewPlayerDB(m.db).GetPlayerByUid(req.Uid)
 	if err != nil {
