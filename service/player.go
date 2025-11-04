@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"runtime/debug"
+	"sync"
+	"time"
 
 	"github.com/kevin-chtw/tw_common/utils"
 	"github.com/kevin-chtw/tw_db_svr/logic"
@@ -24,6 +26,8 @@ type Player struct {
 	app         pitaya.Pitaya
 	sessionPool session.SessionPool
 	handlers    map[string]func(context.Context, proto.Message) (proto.Message, error)
+	bindMutex   sync.Mutex
+	bindTimes   map[string]time.Time
 }
 
 func NewPlayer(db *gorm.DB, app pitaya.Pitaya, sessionPool session.SessionPool) *Player {
@@ -32,6 +36,7 @@ func NewPlayer(db *gorm.DB, app pitaya.Pitaya, sessionPool session.SessionPool) 
 		app:         app,
 		sessionPool: sessionPool,
 		handlers:    make(map[string]func(context.Context, proto.Message) (proto.Message, error)),
+		bindTimes:   make(map[string]time.Time),
 	}
 }
 
@@ -75,7 +80,6 @@ func (l *Player) newAccountAck(ctx context.Context, msg proto.Message) ([]byte, 
 	out := &cproto.AccountAck{Ack: data}
 	return utils.Marshal(ctx, out)
 }
-
 func (l *Player) handleLogin(ctx context.Context, msg proto.Message) (proto.Message, error) {
 	req := msg.(*cproto.LoginReq)
 	player, err := logic.NewPlayerDB(l.db).GetPlayerByAccount(req.Account)
@@ -87,9 +91,23 @@ func (l *Player) handleLogin(ctx context.Context, msg proto.Message) (proto.Mess
 	}
 
 	info := player.ToPlayerInfoAck()
-	if old := l.sessionPool.GetSessionByUID(info.Uid); old != nil {
-		old.Kick(context.Background())
+
+	// 添加会话绑定频率限制
+	l.bindMutex.Lock()
+	now := time.Now()
+	for uid, bindTime := range l.bindTimes {
+		if now.Sub(bindTime) > 30*time.Second {
+			delete(l.bindTimes, uid)
+		}
 	}
+
+	lastBindTime, exists := l.bindTimes[info.Uid]
+	if exists && now.Sub(lastBindTime) < 5*time.Second {
+		l.bindMutex.Unlock()
+		return nil, errors.New("session bind too frequent, please wait 5 seconds")
+	}
+	l.bindTimes[info.Uid] = now
+	l.bindMutex.Unlock()
 
 	s := l.app.GetSessionFromCtx(ctx)
 	if err := s.Bind(ctx, info.Uid); err != nil {
