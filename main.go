@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// 自动迁移模型
-	if err := db.AutoMigrate(&models.Player{}); err != nil {
+	if err := db.AutoMigrate(&models.Player{}, &models.BotPlayer{}); err != nil {
 		panic("failed to migrate database")
 	}
 
