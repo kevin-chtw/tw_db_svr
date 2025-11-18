@@ -20,7 +20,7 @@ func (b *BotPlayerDB) GetBotPlayer(leaseDuration time.Duration) (*models.BotPlay
 	var botPlayer models.BotPlayer
 
 	// 查询可用的botplayer（租约为空或已过期）
-	err := b.DB.Where("(lease_time IS NULL OR expire_time < ?) AND id > ?", time.Now(), 20).First(&botPlayer).Error
+	err := b.DB.Where("lease_time IS NULL OR expire_time < ?", time.Now()).First(&botPlayer).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
