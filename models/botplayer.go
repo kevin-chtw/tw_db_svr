@@ -13,6 +13,7 @@ type BotPlayer struct {
 	Nickname   string     `gorm:"size:32" json:"nickname"`            // 昵称
 	Avatar     string     `gorm:"size:256" json:"avatar"`             // 头像
 	Diamond    int64      `gorm:"default:0" json:"diamond"`           // 钻石
+	Coin       int64      `gorm:"default:0" json:"coin"`              // 金币
 	Vip        int32      `gorm:"default:0" json:"vip"`               // VIP等级
 	LeaseTime  *time.Time `gorm:"index" json:"lease_time"`            // 租约时间，为空表示可用
 	ExpireTime *time.Time `gorm:"index" json:"expire_time"`           // 租约过期时间

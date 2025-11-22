@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"time"
 
@@ -138,5 +139,32 @@ func (l *Player) handleRegister(ctx context.Context, msg proto.Message) (proto.M
 	if err := s.Bind(ctx, info.Uid); err != nil {
 		return nil, err
 	}
+	go l.registerAward(ctx, player)
 	return info, nil
+}
+
+func (l *Player) registerAward(ctx context.Context, player *models.Player) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Log.Errorf("panic recovered %s\n %s", r, string(debug.Stack()))
+		}
+	}()
+	player.Coin += 1000
+	player.Diamond += 20
+	if err := logic.NewPlayerDB(l.db).Update(player); err != nil {
+		logger.Log.Errorf("update player error: %v", err)
+		return
+	}
+	ack := &cproto.RegisterAwardAck{
+		Uid:     strconv.FormatUint(uint64(player.ID), 10),
+		Diamond: player.Diamond,
+		Coin:    player.Coin,
+	}
+
+	if data, err := utils.Marshal(ctx, ack); err != nil {
+		logger.Log.Errorf("marshal error: %v", err)
+
+	} else if _, err := l.app.SendPushToUsers("account", data, []string{ack.Uid}, "proxy"); err != nil {
+		logger.Log.Errorf("send push error: %v", err)
+	}
 }

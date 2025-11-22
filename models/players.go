@@ -21,6 +21,7 @@ type Player struct {
 	IP       string `gorm:"size:32" json:"ip"`        // IP
 	Addr     string `gorm:"size:64" json:"addr"`      // 地址
 	Diamond  int64  `gorm:"default:0" json:"daimond"` // 钻石
+	Coin     int64  `gorm:"default:0" json:"coin"`    // 金币
 	Vip      int32  `gorm:"default:0" json:"vip"`     // VIP等级
 }
 
