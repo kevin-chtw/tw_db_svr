@@ -43,6 +43,7 @@ func (p *Player) ToPlayerInfoAck() *cproto.PlayerInfoAck {
 		Avatar:   p.Avatar,
 		Vip:      int32(p.Vip),
 		Diamond:  p.Diamond,
+		Coin:     p.Coin,
 	}
 }
 
@@ -57,5 +58,6 @@ func (p *Player) ToServerInfoAck() *sproto.PlayerInfoAck {
 		Avatar:   p.Avatar,
 		Vip:      int32(p.Vip),
 		Diamond:  p.Diamond,
+		Coin:     p.Coin,
 	}
 }

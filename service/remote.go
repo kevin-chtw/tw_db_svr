@@ -37,6 +37,7 @@ func NewRemote(db *gorm.DB, app pitaya.Pitaya) *Remote {
 // Init 组件初始化
 func (m *Remote) Init() {
 	m.handlers[utils.TypeUrl(&sproto.ChangeDiamondReq{})] = m.changeDiamondReq
+	m.handlers[utils.TypeUrl(&sproto.ChangeCoinReq{})] = m.changeCoinReq
 	m.handlers[utils.TypeUrl(&sproto.PlayerInfoReq{})] = m.playerInfoReq
 	m.handlers[utils.TypeUrl(&sproto.GetBotReq{})] = m.getBotPlayerReq
 }
@@ -97,7 +98,7 @@ func (m *Remote) changeDiamondReq(ctx context.Context, bot bool, msg proto.Messa
 		playerDiamond = botPlayer.Diamond
 	} else {
 		// 处理真实玩家
-		player, err := logic.NewPlayerDB(m.db).GetPlayerByAccount(req.Uid)
+		player, err := logic.NewPlayerDB(m.db).GetPlayerByUid(req.Uid)
 		if err != nil {
 			return nil, err
 		}
@@ -124,6 +125,59 @@ func (m *Remote) changeDiamondReq(ctx context.Context, bot bool, msg proto.Messa
 	}
 
 	return &sproto.ChangeDiamondAck{Uid: req.Uid, Diamond: playerDiamond}, nil
+}
+
+func (m *Remote) changeCoinReq(ctx context.Context, bot bool, msg proto.Message) (proto.Message, error) {
+	req := msg.(*sproto.ChangeCoinReq)
+
+	var playerCoin int64
+
+	if bot {
+		// 处理bot玩家
+		botPlayer, err := logic.NewBotPlayerDB(m.db).GetBotPlayerByID(req.Uid)
+		if err != nil {
+			return nil, err
+		}
+
+		if botPlayer.Coin+req.Coin < 0 {
+			return nil, errors.New("diamond is not enough")
+		}
+
+		botPlayer.Coin += req.Coin
+		if err := logic.NewBotPlayerDB(m.db).DB.Save(botPlayer).Error; err != nil {
+			return nil, err
+		}
+
+		playerCoin = botPlayer.Coin
+	} else {
+		// 处理真实玩家
+		player, err := logic.NewPlayerDB(m.db).GetPlayerByUid(req.Uid)
+		if err != nil {
+			return nil, err
+		}
+
+		if player.Coin+req.Coin < 0 {
+			return nil, errors.New("diamond is not enough")
+		}
+
+		player.Coin += req.Coin
+		if err := logic.NewPlayerDB(m.db).Update(player); err != nil {
+			return nil, err
+		}
+
+		ack := player.ToPlayerInfoAck()
+		data, err := utils.Marshal(ctx, ack)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := m.app.SendPushToUsers("account", data, []string{req.Uid}, "proxy"); err != nil {
+			return nil, err
+		}
+
+		playerCoin = player.Diamond
+	}
+
+	return &sproto.ChangeCoinAck{Uid: req.Uid, Coin: playerCoin}, nil
 }
 
 func (m *Remote) playerInfoReq(ctx context.Context, bot bool, msg proto.Message) (proto.Message, error) {
